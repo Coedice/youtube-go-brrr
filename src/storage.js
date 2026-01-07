@@ -12,6 +12,7 @@ class StorageManager {
                         Comedy: 1,
                     },
                     channelSpeeds: {},
+                    videoSpeeds: {},
                     disabledVideoIds: {},
                 },
                 resolve
@@ -84,14 +85,19 @@ class StorageManager {
 
     static async getSpeedForVideo(videoInfo) {
         const settings = await this.getSettings();
-        const { channel = null, genres = [] } = videoInfo;
+        const { channel = null, genres = [], videoId = null } = videoInfo;
 
-        // Check channel speeds first (highest priority)
+        // Check video-specific speeds first (highest priority)
+        if (videoId && settings.videoSpeeds && settings.videoSpeeds[videoId]) {
+            return settings.videoSpeeds[videoId];
+        }
+
+        // Check channel speeds second (medium-high priority)
         if (channel && settings.channelSpeeds[channel]) {
             return settings.channelSpeeds[channel];
         }
 
-        // Check genre speeds (medium priority)
+        // Check genre speeds third (medium priority)
         for (const genre of genres) {
             if (settings.genreSpeeds[genre]) {
                 return settings.genreSpeeds[genre];

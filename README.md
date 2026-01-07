@@ -6,9 +6,9 @@ A Chrome extension that speeds up YouTube videos with customisable playback spee
 
 - **Default Speed**: Set a default playback speed
 - **Genre Speeds**: Customise speeds by video genre
-- **Channel Speeds**: Override all other speeds for specific YouTube channels
-- **Priority System**: Channel → Genre → Default speed
-- **Disable for specific videos**: Disable playback speed-up for specific YouTube videos
+- **Channel Speeds**: Customise speeds by YouTube channel
+- **Video Speeds**: Customise speed by specific YouTube video
+- **Priority System**: Video → Channel → Genre → Default speed
 
 ## Installation
 
@@ -24,7 +24,7 @@ A Chrome extension that speeds up YouTube videos with customisable playback spee
 
 Clone and install dependencies:
 
-```bash
+```sh
 git clone <repo-url>
 cd youtube-brrr
 make install
@@ -43,44 +43,22 @@ Load the extension in Chrome:
 
 Click the YouTube Go Brrr icon in your Chrome toolbar to open the settings popup.
 
-### Setting Default Speed
+### Speed Management
 
-1. Enter your preferred playback speed
-2. Click "Save Default"
-
-### Managing Genre Speeds
-
-Genre speeds override the default speed if the video belongs to that genre.
-
-1. Enter a genre name (e.g. "Music", "Comedy")
-2. Enter the desired playback speed
-3. Click "Add Genre"
-4. To remove a genre, click the "Delete" button next to it
-
-### Managing Channel Speeds
-
-Channel speeds override the default and genre speeds if the video is from that channel.
-
-1. Enter a YouTube channel name
-2. Enter the desired playback speed
-3. Click "Add Channel"
-4. To remove a channel, click the "Delete" button next to it
-
-## Speed Priority
-
-The extension applies speeds in this order:
-
-1. **Channel Speed** (highest priority): Specific YouTube channel
-2. **Genre Speed** (middle priority): Video genre/category
-3. **Default Speed** (lowest priority): Applied to all videos
+| Feature | Description | Priority |
+| - | - | - |
+| Default Speed | Set a default playback speed for all videos | Lowest |
+| Genre Speed | Speed to apply to videos of the same genre | low |
+| Channel Speed | Speed to apply to videos from the same channel | Medium |
+| Video Speed | Speed for the current video alone | High |
 
 ## Available Commands
 
-| Command        | Purpose                      |
-| -------------- | ---------------------------- |
-| `make install` | Install dependencies         |
-| `make test`    | Run unit tests with coverage |
-| `make lint`    | Run linter                   |
-| `make format`  | Format code with Prettier    |
-| `make clean`   | Clean build artifacts        |
-| `make help`    | Show help                    |
+| Command | Purpose |
+| - | - |
+| `make install` | Install dependencies |
+| `make test` | Run unit tests with coverage |
+| `make lint` | Run linter |
+| `make format` | Format code with Prettier |
+| `make clean` | Clean build artifacts |
+| `make help` | Show help |

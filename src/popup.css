@@ -147,14 +147,6 @@ input[type='text']:focus {
     background-color: #45a049;
 }
 
-.btn-delete {
-    background-color: #ff4444;
-    color: white;
-    padding: 4px 8px;
-    font-size: 12px;
-    margin-left: 8px;
-}
-
 .btn-delete:hover {
     background-color: #cc0000;
 }
@@ -302,15 +294,17 @@ input[type='text']:focus {
     background: #555;
 }
 /* Toggle Switch Styling */
-.switch {
+.switch,
+.rule-switch {
     position: relative;
     display: inline-block;
-    width: 44px;
-    height: 24px;
+    width: 24px;
+    height: 14px;
     cursor: pointer;
 }
 
-.switch input {
+.switch input,
+.rule-switch input {
     opacity: 0;
     width: 100%;
     height: 100%;
@@ -327,16 +321,16 @@ input[type='text']:focus {
     bottom: 0;
     background-color: #ccc;
     transition: 0.3s;
-    border-radius: 24px;
+    border-radius: 14px;
 }
 
 .slider:before {
     position: absolute;
     content: '';
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
+    height: 10px;
+    width: 10px;
+    left: 2px;
+    bottom: 2px;
     background-color: white;
     transition: 0.3s;
     border-radius: 50%;
@@ -347,10 +341,126 @@ input:checked + .slider {
 }
 
 input:checked + .slider:before {
-    transform: translateX(20px);
+    transform: translateX(10px);
 }
 
 input:disabled + .slider {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Current Rule Containers */
+.current-rule-container {
+    display: none;
+}
+
+.current-rule-container .rule-info {
+    margin-bottom: 8px;
+    padding: 8px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+}
+
+.current-rule-container .rule-name {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f0f0f;
+    margin-bottom: 8px;
+}
+
+.current-rule-container .rule-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+.current-rule-container .speed-input-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.current-rule-container .speed-input-group input[type='number'] {
+    width: 60px;
+    padding: 4px 6px;
+    border: 1px solid #d0d0d0;
+    border-radius: 3px;
+    font-size: 13px;
+    text-align: right;
+}
+
+.current-rule-container .speed-input-group .speed-unit {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+}
+
+.current-rule-container .rule-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.current-rule-container .btn-delete {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.no-info {
+    padding: 16px;
+    text-align: center;
+    color: #666;
+    font-size: 13px;
+    font-style: italic;
+    display: none;
+}
+
+.current-rule-container .rule-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 8px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+}
+
+.current-rule-container .rule-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f0f0f;
+    flex: 1;
+    margin-right: 12px;
+}
+
+.current-rule-container .rule-controls {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+}
+
+.current-rule-container .rule-controls input[type='number'] {
+    width: 70px;
+}
+
+.current-rule-container .btn-primary {
+    flex: 0 0 auto;
+    min-width: 60px;
+    margin-bottom: 0;
+    margin-right: 8px;
+}
+
+.no-info {
+    padding: 16px;
+    text-align: center;
+    color: #666;
+    font-size: 13px;
+    font-style: italic;
+    display: none;
 }

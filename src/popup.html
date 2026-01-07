@@ -9,12 +9,6 @@
     <body>
         <div class="header">
             <h1>YouTube Go Brrr</h1>
-            <div id="video-speed-control">
-                <label class="switch" title="Enable/disable speed-up for this video">
-                    <input type="checkbox" id="video-speed-toggle" />
-                    <span class="slider"></span>
-                </label>
-            </div>
         </div>
         <div class="container">
             <div class="section">
@@ -33,55 +27,101 @@
                 </div>
             </div>
 
-            <!-- Genre Speeds Section -->
+            <!-- Genre Section -->
             <div class="section">
-                <h2>Genre Speeds</h2>
-                <div class="genre-list" id="genre-list"></div>
-                <div class="add-genre">
-                    <input type="text" id="genre-input" placeholder="Enter genre name" />
-                    <input
-                        type="number"
-                        id="genre-speed-input"
-                        min="0"
-                        max="16"
-                        step="0.1"
-                        value="1"
-                    />
-                    <span class="speed-unit">x</span>
-                    <button id="add-genre-btn" class="btn btn-secondary">Add Genre</button>
-                    <button
-                        id="cancel-genre-edit-btn"
-                        class="btn btn-tertiary"
-                        style="display: none"
-                    >
-                        Cancel
-                    </button>
+                <h2>Genre</h2>
+                <div id="current-genre-container" class="current-rule-container">
+                    <div class="rule-info">
+                        <span id="current-genre-name" class="rule-name">Loading...</span>
+                        <div class="rule-controls-row">
+                            <label
+                                class="rule-switch"
+                                title="Enable/disable speed rule for this genre"
+                            >
+                                <input type="checkbox" id="genre-rule-toggle" />
+                                <span class="slider"></span>
+                            </label>
+                            <div class="speed-input-group">
+                                <input
+                                    type="number"
+                                    id="current-genre-speed"
+                                    min="0"
+                                    max="16"
+                                    step="0.1"
+                                    value="1"
+                                />
+                                <span class="speed-unit">x</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rule-actions" id="genre-rule-actions"></div>
                 </div>
+                <div id="no-genre-info" class="no-info">No genre information available</div>
             </div>
 
-            <!-- Channel Speeds Section -->
+            <!-- Channel Section -->
             <div class="section">
-                <h2>Channel Speeds</h2>
-                <div class="channel-list" id="channel-list"></div>
-                <div class="add-channel">
-                    <input type="text" id="channel-input" placeholder="Channel name or URL" />
-                    <input
-                        type="number"
-                        id="channel-speed-input"
-                        min="0"
-                        max="16"
-                        step="0.1"
-                        value="1.5"
-                    />
-                    <span class="speed-unit">x</span>
-                    <button id="add-channel-btn" class="btn btn-secondary">Add Channel</button>
-                    <button
-                        id="cancel-channel-edit-btn"
-                        class="btn btn-tertiary"
-                        style="display: none"
-                    >
-                        Cancel
-                    </button>
+                <h2>Channel</h2>
+                <div id="current-channel-container" class="current-rule-container">
+                    <div class="rule-info">
+                        <span id="current-channel-name" class="rule-name">Loading...</span>
+                        <div class="rule-controls-row">
+                            <label
+                                class="rule-switch"
+                                title="Enable/disable speed rule for this channel"
+                            >
+                                <input type="checkbox" id="channel-rule-toggle" />
+                                <span class="slider"></span>
+                            </label>
+                            <div class="speed-input-group">
+                                <input
+                                    type="number"
+                                    id="current-channel-speed"
+                                    min="0"
+                                    max="16"
+                                    step="0.1"
+                                    value="1"
+                                />
+                                <span class="speed-unit">x</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rule-actions" id="channel-rule-actions"></div>
+                </div>
+                <div id="no-channel-info" class="no-info">No channel information available</div>
+            </div>
+
+            <!-- Video Section -->
+            <div class="section">
+                <h2>Video</h2>
+                <div id="current-video-container" class="current-rule-container">
+                    <div class="rule-info">
+                        <span id="current-video-name" class="rule-name">Loading...</span>
+                        <div class="rule-controls-row">
+                            <label
+                                class="rule-switch"
+                                title="Enable/disable speed rule for this video"
+                            >
+                                <input type="checkbox" id="video-rule-toggle" />
+                                <span class="slider"></span>
+                            </label>
+                            <div class="speed-input-group">
+                                <input
+                                    type="number"
+                                    id="current-video-speed"
+                                    min="0"
+                                    max="16"
+                                    step="0.1"
+                                    value="1"
+                                />
+                                <span class="speed-unit">x</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rule-actions" id="video-rule-actions"></div>
+                </div>
+                <div id="no-video-info" class="no-info">
+                    No video information available. Try refreshing the page.
                 </div>
             </div>
 
