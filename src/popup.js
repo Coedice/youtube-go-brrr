@@ -37,8 +37,6 @@ class PopupManager {
         this.deleteVideoRuleBtn = document.getElementById('delete-video-rule-btn');
         this.noVideoInfo = document.getElementById('no-video-info');
 
-        this.statusMessage = document.getElementById('status-message');
-
         console.log(
             'YouTube Go Brrr popup: Elements loaded, videoSpeedToggle:',
             this.videoSpeedToggle,
@@ -128,7 +126,6 @@ class PopupManager {
         const speed = this.snapSpeed(parseFloat(this.defaultSpeedInput.value));
 
         if (isNaN(speed) || speed < 0.25 || speed > 16) {
-            this.showStatus('Invalid speed. Must be between 0.25x and 16x', 'error');
             return;
         }
 
@@ -138,13 +135,9 @@ class PopupManager {
             this.defaultSpeedInput.value = speed;
             await this.saveStorageSettings(settings);
 
-            // Notify content script to reapply speed
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tab && tab.id) {
-                chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' });
-            }
+            await this.notifyContentScript();
         } catch (error) {
-            this.showStatus('Error saving default speed', 'error');
+            console.error('Error saving default speed:', error);
         }
     }
 
@@ -155,172 +148,130 @@ class PopupManager {
             await this.saveStorageSettings(settings);
             this.renderChannels(settings.channelSpeeds);
         } catch (error) {
-            this.showStatus('Error deleting channel', 'error');
+            console.error('Error deleting channel rule:', error);
         }
     }
 
     async handleGenreToggle() {
-        if (!this.currentGenres || this.currentGenres.length === 0) return;
-
-        // Use the first genre as the primary one for rule creation
-        const primaryGenre =
-            this.currentGenres[0].charAt(0).toUpperCase() +
-            this.currentGenres[0].slice(1).toLowerCase();
-
-        if (this.genreRuleToggle.checked) {
-            // Enable rule - create with default speed if not exists
-            document.getElementById('current-genre-speed').parentElement.style.display = 'flex';
-            document.getElementById('genre-rule-actions').style.display = 'flex';
-
-            const speed = this.snapSpeed(parseFloat(this.currentGenreSpeed.value));
-            if (isNaN(speed) || speed < 0.25 || speed > 16) {
-                this.genreRuleToggle.checked = false;
-                document.getElementById('current-genre-speed').parentElement.style.display = 'none';
-                document.getElementById('genre-rule-actions').style.display = 'none';
-                this.showStatus('Invalid speed. Must be between 0.25x and 16x', 'error');
-                return;
-            }
-
-            try {
-                const settings = await this.getStorageSettings();
-                settings.genreSpeeds[primaryGenre] = speed;
-                await this.saveStorageSettings(settings);
-
-                // Notify content script to reapply speed
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab && tab.id) {
-                    chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' });
-                }
-            } catch (error) {
-                this.showStatus('Error enabling genre rule', 'error');
-            }
-        } else {
-            // Disable rule - remove from storage
-            document.getElementById('current-genre-speed').parentElement.style.display = 'none';
-            document.getElementById('genre-rule-actions').style.display = 'none';
-
-            try {
-                const settings = await this.getStorageSettings();
-                delete settings.genreSpeeds[primaryGenre];
-                await this.saveStorageSettings(settings);
-
-                // Notify content script to reapply speed
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab && tab.id) {
-                    chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' });
-                }
-            } catch (error) {
-                this.showStatus('Error disabling genre rule', 'error');
-            }
-        }
+        await this.handleRuleToggle('genre', {
+            identifier:
+                this.currentGenres?.length > 0
+                    ? this.currentGenres[0].charAt(0).toUpperCase() +
+                      this.currentGenres[0].slice(1).toLowerCase()
+                    : null,
+            toggle: this.genreRuleToggle,
+            speedInput: this.currentGenreSpeed,
+            speedContainer: document.getElementById('current-genre-speed').parentElement,
+            settingsKey: 'genreSpeeds',
+        });
     }
 
     async handleGenreSpeedChange() {
-        // Auto-save when speed changes if rule is enabled
-        if (this.genreRuleToggle.checked && this.currentGenres && this.currentGenres.length > 0) {
-            const primaryGenre =
-                this.currentGenres[0].charAt(0).toUpperCase() +
-                this.currentGenres[0].slice(1).toLowerCase();
-            const speed = this.snapSpeed(parseFloat(this.currentGenreSpeed.value));
-
-            if (isNaN(speed) || speed < 0.25 || speed > 16) {
-                this.showStatus('Invalid speed. Must be between 0.25x and 16x', 'error');
-                return;
-            }
-
-            try {
-                const settings = await this.getStorageSettings();
-                settings.genreSpeeds[primaryGenre] = speed;
-                await this.saveStorageSettings(settings);
-                this.showStatus('Genre speed updated!', 'success');
-
-                // Notify content script to reapply speed
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab && tab.id) {
-                    chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' });
-                }
-            } catch (error) {
-                this.showStatus('Error updating genre speed', 'error');
-            }
-        }
+        await this.handleSpeedChange('genre', {
+            identifier:
+                this.currentGenres?.length > 0
+                    ? this.currentGenres[0].charAt(0).toUpperCase() +
+                      this.currentGenres[0].slice(1).toLowerCase()
+                    : null,
+            toggle: this.genreRuleToggle,
+            speedInput: this.currentGenreSpeed,
+            settingsKey: 'genreSpeeds',
+        });
     }
 
     async handleChannelToggle() {
-        if (!this.currentChannel) return;
+        await this.handleRuleToggle('channel', {
+            identifier: this.currentChannel,
+            toggle: this.channelRuleToggle,
+            speedInput: this.currentChannelSpeed,
+            speedContainer: document.getElementById('current-channel-speed').parentElement,
+            settingsKey: 'channelSpeeds',
+        });
+    }
 
-        if (this.channelRuleToggle.checked) {
-            // Enable rule - create with default speed if not exists
-            document.getElementById('current-channel-speed').parentElement.style.display = 'flex';
+    async handleChannelSpeedChange() {
+        await this.handleSpeedChange('channel', {
+            identifier: this.currentChannel,
+            toggle: this.channelRuleToggle,
+            speedInput: this.currentChannelSpeed,
+            settingsKey: 'channelSpeeds',
+        });
+    }
 
-            const speed = this.snapSpeed(parseFloat(this.currentChannelSpeed.value));
+    async handleRuleToggle(type, { identifier, toggle, speedInput, speedContainer, settingsKey }) {
+        if (!identifier) return;
+
+        if (toggle.checked) {
+            this.setSpeedInputVisibility(speedContainer, true);
+
+            const speed = this.snapSpeed(parseFloat(speedInput.value));
             if (isNaN(speed) || speed < 0.25 || speed > 16) {
-                this.channelRuleToggle.checked = false;
-                document.getElementById('current-channel-speed').parentElement.style.display =
-                    'none';
-                this.showStatus('Invalid speed. Must be between 0.25x and 16x', 'error');
+                toggle.checked = false;
+                this.setSpeedInputVisibility(speedContainer, false);
                 return;
             }
 
             try {
                 const settings = await this.getStorageSettings();
-                settings.channelSpeeds[this.currentChannel] = speed;
-                await this.saveStorageSettings(settings);
-                this.showStatus('Channel rule enabled!', 'success');
-
-                // Notify content script to reapply speed
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab && tab.id) {
-                    chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' });
+                if (type === 'video' && !settings[settingsKey]) {
+                    settings[settingsKey] = {};
                 }
+                settings[settingsKey][identifier] = speed;
+                await this.saveStorageSettings(settings);
+                await this.notifyContentScript();
             } catch (error) {
-                this.showStatus('Error enabling channel rule', 'error');
+                console.error('Error handling speed change:', error);
             }
         } else {
-            // Disable rule - remove from storage
-            document.getElementById('current-channel-speed').parentElement.style.display = 'none';
+            this.setSpeedInputVisibility(speedContainer, false);
 
             try {
                 const settings = await this.getStorageSettings();
-                delete settings.channelSpeeds[this.currentChannel];
-                await this.saveStorageSettings(settings);
-                this.showStatus('Channel rule disabled!', 'success');
-
-                // Notify content script to reapply speed
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab && tab.id) {
-                    chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' });
+                if (settings[settingsKey]) {
+                    delete settings[settingsKey][identifier];
                 }
+                await this.saveStorageSettings(settings);
+                await this.notifyContentScript();
             } catch (error) {
-                this.showStatus('Error disabling channel rule', 'error');
+                console.error('Error handling speed change:', error);
             }
         }
     }
 
-    async handleChannelSpeedChange() {
-        // Auto-save when speed changes if rule is enabled
-        if (this.channelRuleToggle.checked && this.currentChannel) {
-            const speed = this.snapSpeed(parseFloat(this.currentChannelSpeed.value));
+    async handleSpeedChange(type, { identifier, toggle, speedInput, settingsKey }) {
+        if (!toggle.checked || !identifier) return;
 
-            if (isNaN(speed) || speed < 0.25 || speed > 16) {
-                this.showStatus('Invalid speed. Must be between 0.25x and 16x', 'error');
-                return;
-            }
-
-            try {
-                const settings = await this.getStorageSettings();
-                settings.channelSpeeds[this.currentChannel] = speed;
-                await this.saveStorageSettings(settings);
-                this.showStatus('Channel speed updated!', 'success');
-
-                // Notify content script to reapply speed
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab && tab.id) {
-                    chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' });
-                }
-            } catch (error) {
-                this.showStatus('Error updating channel speed', 'error');
-            }
+        const speed = this.snapSpeed(parseFloat(speedInput.value));
+        if (isNaN(speed) || speed < 0.25 || speed > 16) {
+            return;
         }
+
+        try {
+            const settings = await this.getStorageSettings();
+            if (type === 'video' && !settings[settingsKey]) {
+                settings[settingsKey] = {};
+            }
+            settings[settingsKey][identifier] = speed;
+            await this.saveStorageSettings(settings);
+            await this.notifyContentScript();
+        } catch (error) {
+            console.error('Error handling rule toggle:', error);
+        }
+    }
+
+    async notifyContentScript() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab && tab.id) {
+                chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' });
+            }
+        } catch (error) {
+            console.error('Error notifying content script:', error);
+        }
+    }
+
+    setSpeedInputVisibility(speedContainer, visible) {
+        speedContainer.style.display = visible ? 'flex' : 'none';
     }
 
     async loadCurrentVideoInfo() {
@@ -496,8 +447,10 @@ class PopupManager {
                 if (lowestSpeed !== null) {
                     this.genreRuleToggle.checked = true;
                     this.currentGenreSpeed.value = this.snapSpeed(lowestSpeed);
-                    document.getElementById('current-genre-speed').parentElement.style.display =
-                        'flex';
+                    this.setSpeedInputVisibility(
+                        document.getElementById('current-genre-speed').parentElement,
+                        true
+                    );
                     console.log(
                         'YouTube Go Brrr popup: Found genre rules for:',
                         matchedGenres,
@@ -506,8 +459,10 @@ class PopupManager {
                     );
                 } else {
                     this.genreRuleToggle.checked = false;
-                    document.getElementById('current-genre-speed').parentElement.style.display =
-                        'none';
+                    this.setSpeedInputVisibility(
+                        document.getElementById('current-genre-speed').parentElement,
+                        false
+                    );
                     console.log('YouTube Go Brrr popup: No genre rules found');
                 }
             } else {
@@ -529,13 +484,17 @@ class PopupManager {
                 if (channelRule !== undefined) {
                     this.channelRuleToggle.checked = true;
                     this.currentChannelSpeed.value = this.snapSpeed(channelRule);
-                    document.getElementById('current-channel-speed').parentElement.style.display =
-                        'flex';
+                    this.setSpeedInputVisibility(
+                        document.getElementById('current-channel-speed').parentElement,
+                        true
+                    );
                     console.log('YouTube Go Brrr popup: Found existing channel rule:', channelRule);
                 } else {
                     this.channelRuleToggle.checked = false;
-                    document.getElementById('current-channel-speed').parentElement.style.display =
-                        'none';
+                    this.setSpeedInputVisibility(
+                        document.getElementById('current-channel-speed').parentElement,
+                        false
+                    );
                     console.log('YouTube Go Brrr popup: No existing channel rule');
                 }
             } else {
@@ -546,7 +505,7 @@ class PopupManager {
 
             // Handle video-specific rule
             if (this.currentVideoId) {
-                this.currentVideoName.textContent = `Video ${this.currentVideoId.slice(-6)}`;
+                this.currentVideoName.textContent = `Video ID ${this.currentVideoId.slice(-6)}`;
                 this.currentVideoContainer.style.display = 'block';
                 this.noVideoInfo.style.display = 'none';
 
@@ -555,15 +514,17 @@ class PopupManager {
                 if (videoRule !== undefined) {
                     this.videoRuleToggle.checked = true;
                     this.currentVideoSpeed.value = this.snapSpeed(videoRule);
-                    document.getElementById('current-video-speed').parentElement.style.display =
-                        'flex';
-                    document.getElementById('video-rule-actions').style.display = 'flex';
+                    this.setSpeedInputVisibility(
+                        document.getElementById('current-video-speed').parentElement,
+                        true
+                    );
                     console.log('YouTube Go Brrr popup: Found existing video rule:', videoRule);
                 } else {
                     this.videoRuleToggle.checked = false;
-                    document.getElementById('current-video-speed').parentElement.style.display =
-                        'none';
-                    document.getElementById('video-rule-actions').style.display = 'none';
+                    this.setSpeedInputVisibility(
+                        document.getElementById('current-video-speed').parentElement,
+                        false
+                    );
                     console.log('YouTube Go Brrr popup: No existing video rule');
                 }
             } else {
@@ -649,109 +610,22 @@ class PopupManager {
     }
 
     async handleVideoToggle() {
-        if (!this.currentVideoId) return;
-
-        if (this.videoRuleToggle.checked) {
-            // Enable rule - create with default speed if not exists
-            document.getElementById('current-video-speed').parentElement.style.display = 'flex';
-
-            const speed = this.snapSpeed(parseFloat(this.currentVideoSpeed.value));
-            if (isNaN(speed) || speed < 0.25 || speed > 16) {
-                this.videoRuleToggle.checked = false;
-                document.getElementById('current-video-speed').parentElement.style.display = 'none';
-                this.showStatus('Invalid speed. Must be between 0.25x and 16x', 'error');
-                return;
-            }
-
-            try {
-                const settings = await this.getStorageSettings();
-                if (!settings.videoSpeeds) {
-                    settings.videoSpeeds = {};
-                }
-                settings.videoSpeeds[this.currentVideoId] = speed;
-                await this.saveStorageSettings(settings);
-                this.showStatus('Video rule enabled!', 'success');
-
-                // Notify content script to reapply speed
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab && tab.id) {
-                    chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' }, () => {
-                        if (chrome.runtime.lastError) {
-                            console.log(
-                                'YouTube Go Brrr popup: reapplySpeed error',
-                                chrome.runtime.lastError.message
-                            );
-                        }
-                    });
-                }
-            } catch (error) {
-                this.showStatus('Error enabling video rule', 'error');
-            }
-        } else {
-            // Disable rule - remove from storage
-            document.getElementById('current-video-speed').parentElement.style.display = 'none';
-
-            try {
-                const settings = await this.getStorageSettings();
-                if (settings.videoSpeeds) {
-                    delete settings.videoSpeeds[this.currentVideoId];
-                }
-                await this.saveStorageSettings(settings);
-                this.showStatus('Video rule disabled!', 'success');
-
-                // Notify content script to reapply speed
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab && tab.id) {
-                    chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' }, () => {
-                        if (chrome.runtime.lastError) {
-                            console.log(
-                                'YouTube Go Brrr popup: reapplySpeed error',
-                                chrome.runtime.lastError.message
-                            );
-                        }
-                    });
-                }
-            } catch (error) {
-                this.showStatus('Error disabling video rule', 'error');
-            }
-        }
+        await this.handleRuleToggle('video', {
+            identifier: this.currentVideoId,
+            toggle: this.videoRuleToggle,
+            speedInput: this.currentVideoSpeed,
+            speedContainer: document.getElementById('current-video-speed').parentElement,
+            settingsKey: 'videoSpeeds',
+        });
     }
 
     async handleVideoSpeedChange() {
-        // Auto-save when speed changes if rule is enabled
-        if (this.videoRuleToggle.checked && this.currentVideoId) {
-            const speed = this.snapSpeed(parseFloat(this.currentVideoSpeed.value));
-
-            if (isNaN(speed) || speed < 0.25 || speed > 16) {
-                this.showStatus('Invalid speed. Must be between 0.25x and 16x', 'error');
-                return;
-            }
-
-            try {
-                const settings = await this.getStorageSettings();
-                if (!settings.videoSpeeds) {
-                    settings.videoSpeeds = {};
-                }
-                settings.videoSpeeds[this.currentVideoId] = speed;
-                await this.saveStorageSettings(settings);
-                this.showStatus('Video speed updated!', 'success');
-
-                // Notify content script to reapply speed
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tab && tab.id) {
-                    chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' }, () => {
-                        if (chrome.runtime.lastError) {
-                            console.log(
-                                'YouTube Go Brrr popup: reapplySpeed error',
-                                chrome.runtime.lastError.message
-                            );
-                        }
-                    });
-                }
-            } catch (error) {
-                this.showStatus('Error updating video speed', 'error');
-            }
-        }
+        await this.handleSpeedChange('video', {
+            identifier: this.currentVideoId,
+            toggle: this.videoRuleToggle,
+            speedInput: this.currentVideoSpeed,
+            settingsKey: 'videoSpeeds',
+        });
     }
 
     showStatus(message, type) {

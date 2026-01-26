@@ -1,4 +1,3 @@
-/* Popup Styles */
 * {
     margin: 0;
     padding: 0;
@@ -17,7 +16,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
+    padding: 12px;
     background-color: white;
     border-bottom: 1px solid #e0e0e0;
 }
@@ -40,7 +39,7 @@ h1 {
 }
 
 .container {
-    padding: 16px;
+    padding: 12px;
 }
 
 h2 {
@@ -48,16 +47,19 @@ h2 {
     margin-bottom: 12px;
     color: #0f0f0f;
     font-weight: 600;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 8px;
+    text-align: center;
 }
 
 .section {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     padding: 12px;
     background-color: white;
     border-radius: 8px;
     border: 1px solid #e0e0e0;
+}
+
+.section:last-child {
+    margin-bottom: 0;
 }
 
 .setting-row {
@@ -95,7 +97,7 @@ input[type='text']:focus {
 }
 
 .btn {
-    padding: 8px 16px;
+    padding: 8px 12px;
     border: none;
     border-radius: 4px;
     font-size: 13px;
@@ -138,17 +140,24 @@ input[type='text']:focus {
     background-color: #f2f2f2;
 }
 
-.btn-success {
+.btn-success,
+.btn-save {
     background-color: #4caf50;
     color: white;
 }
 
-.btn-success:hover {
+.btn-success:hover,
+.btn-save:hover {
     background-color: #45a049;
 }
 
-.btn-delete:hover {
+.btn-delete {
     background-color: #cc0000;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #990000;
 }
 
 .genre-list,
@@ -160,9 +169,6 @@ input[type='text']:focus {
 
 .genre-item,
 .channel-item {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
     gap: 8px;
     padding: 8px;
     background-color: #f5f5f5;
@@ -171,23 +177,34 @@ input[type='text']:focus {
     font-size: 13px;
 }
 
+.genre-item,
+.channel-item {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+/* Common input field styles */
+.input-field,
 .genre-name-input,
-.channel-name-input {
-    flex: 1;
-    min-width: 80px;
+.channel-name-input,
+.genre-speed-input,
+.channel-speed-input {
     padding: 4px 6px;
     border: 1px solid #d0d0d0;
     border-radius: 3px;
     font-size: 13px;
 }
 
+.genre-name-input,
+.channel-name-input {
+    flex: 1;
+    min-width: 80px;
+}
+
 .genre-speed-input,
 .channel-speed-input {
     width: 60px;
-    padding: 4px 6px;
-    border: 1px solid #d0d0d0;
-    border-radius: 3px;
-    font-size: 13px;
     text-align: right;
 }
 
@@ -198,14 +215,8 @@ input[type='text']:focus {
 }
 
 .btn-save {
-    background-color: #4caf50;
-    color: white;
     padding: 4px 8px;
     font-size: 12px;
-}
-
-.btn-save:hover {
-    background-color: #45a049;
 }
 
 .btn-cancel {
@@ -221,8 +232,8 @@ input[type='text']:focus {
 
 .add-genre,
 .add-channel {
-    display: flex;
     gap: 8px;
+    display: flex;
     align-items: center;
 }
 
@@ -237,41 +248,36 @@ input[type='text']:focus {
     min-width: 100px;
 }
 
-.status-message {
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 13px;
-    margin-top: 12px;
-    display: none;
-    animation: slideIn 0.3s ease;
+/* Utility classes */
+.flex {
+    display: flex;
 }
 
-.status-message.success {
-    display: block;
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.status-message.error {
-    display: block;
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.flex-start {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
 }
 
-/* Scrollbar styling */
+.flex-column {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Custom scrollbar styling */
+
 .genre-list::-webkit-scrollbar,
 .channel-list::-webkit-scrollbar {
     width: 6px;
@@ -349,16 +355,8 @@ input:disabled + .slider {
     cursor: not-allowed;
 }
 
-/* Current Rule Containers */
 .current-rule-container {
     display: none;
-}
-
-.current-rule-container .rule-info {
-    margin-bottom: 8px;
-    padding: 8px;
-    background-color: #f5f5f5;
-    border-radius: 4px;
 }
 
 .current-rule-container .rule-name {
@@ -366,7 +364,8 @@ input:disabled + .slider {
     font-size: 14px;
     font-weight: 500;
     color: #0f0f0f;
-    margin-bottom: 8px;
+    flex: 1;
+    margin-right: 12px;
 }
 
 .current-rule-container .rule-controls-row {
@@ -384,23 +383,6 @@ input:disabled + .slider {
 
 .current-rule-container .speed-input-group input[type='number'] {
     width: 60px;
-    padding: 4px 6px;
-    border: 1px solid #d0d0d0;
-    border-radius: 3px;
-    font-size: 13px;
-    text-align: right;
-}
-
-.current-rule-container .speed-input-group .speed-unit {
-    font-size: 12px;
-    color: #666;
-    font-weight: 500;
-}
-
-.current-rule-container .rule-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 8px;
 }
 
 .current-rule-container .btn-delete {
@@ -409,7 +391,7 @@ input:disabled + .slider {
 }
 
 .no-info {
-    padding: 16px;
+    padding: 12px;
     text-align: center;
     color: #666;
     font-size: 13px;
@@ -421,18 +403,6 @@ input:disabled + .slider {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    padding: 8px;
-    background-color: #f5f5f5;
-    border-radius: 4px;
-}
-
-.current-rule-container .rule-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: #0f0f0f;
-    flex: 1;
-    margin-right: 12px;
 }
 
 .current-rule-container .rule-controls {
@@ -454,13 +424,4 @@ input:disabled + .slider {
     min-width: 60px;
     margin-bottom: 0;
     margin-right: 8px;
-}
-
-.no-info {
-    padding: 16px;
-    text-align: center;
-    color: #666;
-    font-size: 13px;
-    font-style: italic;
-    display: none;
 }
