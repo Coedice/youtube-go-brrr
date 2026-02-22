@@ -18,7 +18,30 @@
     "no-console": "off"
   },
   "globals": {
-    "chrome": "readonly"
+    "chrome": "readonly",
+    "importScripts": "readonly",
+    "DEFAULT_SPEED": "readonly",
+    "DEFAULT_GENRE_SPEEDS": "readonly",
+    "DEFAULT_CHANNEL_SPEEDS": "readonly",
+    "DEFAULT_VIDEO_SPEEDS": "readonly",
+    "DEFAULT_DISABLED_VIDEO_IDS": "readonly",
+    "MIN_SPEED": "readonly",
+    "MAX_SPEED": "readonly",
+    "SPEED_STEP": "readonly",
+    "NORMAL_SPEED": "readonly",
+    "NAVIGATION_DELAY": "readonly",
+    "CHANNEL_RESOLVE_DELAY": "readonly",
+    "MAX_CHANNEL_RESOLVE_ATTEMPTS": "readonly",
+    "CONTENT_SCRIPT_INJECTION_WAIT": "readonly",
+    "STATUS_MESSAGE_TIMEOUT": "readonly",
+    "VIDEO_ID_DISPLAY_LENGTH": "readonly",
+    "STORAGE_KEYS": "readonly",
+    "STORAGE_AREA": "readonly",
+    "MESSAGE_ACTIONS": "readonly",
+    "PATTERNS": "readonly",
+    "SELECTORS": "readonly",
+    "MUTATION_OBSERVER_CONFIG": "readonly",
+    "DOM_EVENTS": "readonly"
   },
   "overrides": [
     {

@@ -4,19 +4,14 @@
 class StorageManager {
     static async getSettings() {
         return new Promise((resolve) => {
-            chrome.storage.sync.get(
-                {
-                    defaultSpeed: 2.3,
-                    genreSpeeds: {
-                        Music: 1,
-                        Comedy: 1,
-                    },
-                    channelSpeeds: {},
-                    videoSpeeds: {},
-                    disabledVideoIds: {},
-                },
-                resolve
-            );
+            const defaultSettings = {};
+            defaultSettings[STORAGE_KEYS.DEFAULT_SPEED] = DEFAULT_SPEED;
+            defaultSettings[STORAGE_KEYS.GENRE_SPEEDS] = DEFAULT_GENRE_SPEEDS;
+            defaultSettings[STORAGE_KEYS.CHANNEL_SPEEDS] = DEFAULT_CHANNEL_SPEEDS;
+            defaultSettings[STORAGE_KEYS.VIDEO_SPEEDS] = DEFAULT_VIDEO_SPEEDS;
+            defaultSettings[STORAGE_KEYS.DISABLED_VIDEO_IDS] = DEFAULT_DISABLED_VIDEO_IDS;
+
+            chrome.storage.sync.get(defaultSettings, resolve);
         });
     }
 
@@ -34,45 +29,45 @@ class StorageManager {
 
     static async setDefaultSpeed(speed) {
         const settings = await this.getSettings();
-        settings.defaultSpeed = parseFloat(speed);
+        settings[STORAGE_KEYS.DEFAULT_SPEED] = parseFloat(speed);
         await this.saveSettings(settings);
         return settings;
     }
 
     static async addGenre(genre, speed) {
         const settings = await this.getSettings();
-        settings.genreSpeeds[genre] = parseFloat(speed);
+        settings[STORAGE_KEYS.GENRE_SPEEDS][genre] = parseFloat(speed);
         await this.saveSettings(settings);
         return settings;
     }
 
     static async removeGenre(genre) {
         const settings = await this.getSettings();
-        delete settings.genreSpeeds[genre];
+        delete settings[STORAGE_KEYS.GENRE_SPEEDS][genre];
         await this.saveSettings(settings);
         return settings;
     }
 
     static async addChannel(channel, speed) {
         const settings = await this.getSettings();
-        settings.channelSpeeds[channel] = parseFloat(speed);
+        settings[STORAGE_KEYS.CHANNEL_SPEEDS][channel] = parseFloat(speed);
         await this.saveSettings(settings);
         return settings;
     }
 
     static async removeChannel(channel) {
         const settings = await this.getSettings();
-        delete settings.channelSpeeds[channel];
+        delete settings[STORAGE_KEYS.CHANNEL_SPEEDS][channel];
         await this.saveSettings(settings);
         return settings;
     }
 
     static async toggleDisableVideo(videoId) {
         const settings = await this.getSettings();
-        if (settings.disabledVideoIds[videoId]) {
-            delete settings.disabledVideoIds[videoId];
+        if (settings[STORAGE_KEYS.DISABLED_VIDEO_IDS][videoId]) {
+            delete settings[STORAGE_KEYS.DISABLED_VIDEO_IDS][videoId];
         } else {
-            settings.disabledVideoIds[videoId] = true;
+            settings[STORAGE_KEYS.DISABLED_VIDEO_IDS][videoId] = true;
         }
         await this.saveSettings(settings);
         return settings;
@@ -80,7 +75,7 @@ class StorageManager {
 
     static async isVideoDisabled(videoId) {
         const settings = await this.getSettings();
-        return !!settings.disabledVideoIds[videoId];
+        return !!settings[STORAGE_KEYS.DISABLED_VIDEO_IDS][videoId];
     }
 
     static async getSpeedForVideo(videoInfo) {
@@ -88,24 +83,28 @@ class StorageManager {
         const { channel = null, genres = [], videoId = null } = videoInfo;
 
         // Check video-specific speeds first (highest priority)
-        if (videoId && settings.videoSpeeds && settings.videoSpeeds[videoId]) {
-            return settings.videoSpeeds[videoId];
+        if (
+            videoId &&
+            settings[STORAGE_KEYS.VIDEO_SPEEDS] &&
+            settings[STORAGE_KEYS.VIDEO_SPEEDS][videoId]
+        ) {
+            return settings[STORAGE_KEYS.VIDEO_SPEEDS][videoId];
         }
 
         // Check channel speeds second (medium-high priority)
-        if (channel && settings.channelSpeeds[channel]) {
-            return settings.channelSpeeds[channel];
+        if (channel && settings[STORAGE_KEYS.CHANNEL_SPEEDS][channel]) {
+            return settings[STORAGE_KEYS.CHANNEL_SPEEDS][channel];
         }
 
         // Check genre speeds third (medium priority)
         for (const genre of genres) {
-            if (settings.genreSpeeds[genre]) {
-                return settings.genreSpeeds[genre];
+            if (settings[STORAGE_KEYS.GENRE_SPEEDS][genre]) {
+                return settings[STORAGE_KEYS.GENRE_SPEEDS][genre];
             }
         }
 
         // Return default speed (lowest priority)
-        return settings.defaultSpeed;
+        return settings[STORAGE_KEYS.DEFAULT_SPEED];
     }
 }
 

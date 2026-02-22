@@ -34,6 +34,9 @@ describe('background service worker', () => {
                 },
             },
         };
+
+        // Load constants into global scope
+        require('../src/constants.js');
     });
 
     it('sets defaults on install', () => {

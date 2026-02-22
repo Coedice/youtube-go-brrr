@@ -19,22 +19,22 @@ class YouTubeSpeedController {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             console.log('YouTube Go Brrr content: Received message:', request.action);
 
-            if (request.action === 'ping') {
+            if (request.action === MESSAGE_ACTIONS.PING) {
                 console.log('YouTube Go Brrr content: Received ping, responding');
                 sendResponse({ status: 'ready' });
                 return;
             }
 
-            if (request.action === 'getSpeed') {
+            if (request.action === MESSAGE_ACTIONS.GET_SPEED) {
                 console.log(
                     'YouTube Go Brrr content: Returning speed:',
-                    this.lastAppliedSpeed || 1
+                    this.lastAppliedSpeed || NORMAL_SPEED
                 );
-                sendResponse({ speed: this.lastAppliedSpeed || 1 });
+                sendResponse({ speed: this.lastAppliedSpeed || NORMAL_SPEED });
                 return;
             }
 
-            if (request.action === 'getVideoInfo') {
+            if (request.action === MESSAGE_ACTIONS.GET_VIDEO_INFO) {
                 this.extractVideoInfo().then((videoInfo) => {
                     console.log('YouTube Go Brrr content: Returning video info:', videoInfo);
                     sendResponse(videoInfo);
@@ -42,7 +42,7 @@ class YouTubeSpeedController {
                 return true; // Keep the channel open for async response
             }
 
-            if (request.action === 'reapplySpeed') {
+            if (request.action === MESSAGE_ACTIONS.REAPPLY_SPEED) {
                 console.log(
                     'YouTube Go Brrr content: Reapplying speed, isDisabled:',
                     request.isDisabled
@@ -58,14 +58,14 @@ class YouTubeSpeedController {
                 return;
             }
 
-            if (request.action === 'getVideoId') {
+            if (request.action === MESSAGE_ACTIONS.GET_VIDEO_ID) {
                 const videoId = this.getVideoId();
                 console.log('YouTube Go Brrr content: Returning video ID:', videoId);
                 sendResponse({ videoId });
                 return;
             }
 
-            if (request.action === 'getChannelInfo') {
+            if (request.action === MESSAGE_ACTIONS.GET_CHANNEL_INFO) {
                 console.log('YouTube Go Brrr content: Getting channel info...');
                 // Resolve channel asynchronously to allow late-loading DOM
                 this.resolveChannelName().then((channel) => {
@@ -75,7 +75,7 @@ class YouTubeSpeedController {
                 return true; // async response
             }
 
-            if (request.action === 'getGenreInfo') {
+            if (request.action === MESSAGE_ACTIONS.GET_GENRE_INFO) {
                 console.log('YouTube Go Brrr content: Getting genre info...');
                 const genres = this.extractGenres();
                 console.log('YouTube Go Brrr content: Extracted genres:', genres);
@@ -86,7 +86,7 @@ class YouTubeSpeedController {
 
         // Listen for storage changes to update speed when settings are edited
         chrome.storage.onChanged.addListener((changes, areaName) => {
-            if (areaName === 'sync') {
+            if (areaName === STORAGE_AREA) {
                 this.applySpeed();
             }
         });
@@ -107,7 +107,7 @@ class YouTubeSpeedController {
                 // Reset state and reapply speed for new video
                 this.lastAppliedSpeed = null;
                 // Wait a bit for YouTube to update the video element
-                setTimeout(() => this.applySpeed(), 100);
+                setTimeout(() => this.applySpeed(), NAVIGATION_DELAY);
             }
         };
 
@@ -126,10 +126,10 @@ class YouTubeSpeedController {
         };
 
         // Also listen to popstate for back/forward navigation
-        window.addEventListener('popstate', checkUrlChange);
+        window.addEventListener(DOM_EVENTS.POP_STATE, checkUrlChange);
 
         // YouTube sometimes uses yt-navigate events
-        document.addEventListener('yt-navigate-finish', () => {
+        document.addEventListener(DOM_EVENTS.YT_NAVIGATE_FINISH, () => {
             checkUrlChange();
         });
     }
@@ -139,14 +139,14 @@ class YouTubeSpeedController {
         if (document.body) {
             this.startObserving();
         } else {
-            document.addEventListener('DOMContentLoaded', () => this.startObserving());
+            document.addEventListener(DOM_EVENTS.DOM_CONTENT_LOADED, () => this.startObserving());
         }
     }
 
     startObserving() {
         // Use MutationObserver to detect when video element is added to DOM
         const observer = new MutationObserver(() => {
-            const video = document.querySelector('video');
+            const video = document.querySelector(SELECTORS.VIDEO);
             if (video && video !== this.videoElement) {
                 this.videoElement = video;
                 this.lastAppliedSpeed = null;
@@ -154,10 +154,7 @@ class YouTubeSpeedController {
             }
         });
 
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-        });
+        observer.observe(document.body, MUTATION_OBSERVER_CONFIG);
     }
 
     async applySpeed() {
@@ -194,8 +191,8 @@ class YouTubeSpeedController {
 
         try {
             if (isDisabled) {
-                video.playbackRate = 1;
-                this.lastAppliedSpeed = 1;
+                video.playbackRate = NORMAL_SPEED;
+                this.lastAppliedSpeed = NORMAL_SPEED;
                 return;
             }
 
@@ -235,9 +232,7 @@ class YouTubeSpeedController {
         console.log('YouTube Go Brrr content: URL:', window.location.href);
 
         // Primary: channel link in the watch page header
-        const channelElement = document.querySelector(
-            '.ytd-channel-name > ytd-channel-name > a'
-        );
+        const channelElement = document.querySelector(SELECTORS.CHANNEL_PRIMARY);
         if (channelElement && channelElement.textContent) {
             const channel = channelElement.textContent.trim();
             console.log(
@@ -250,15 +245,7 @@ class YouTubeSpeedController {
         }
 
         // Alternate DOM locations (owner renderer, shorts overlay/header)
-        const altSelectors = [
-            'ytd-video-owner-renderer a',
-            '#owner-name a',
-            '#channel-name a',
-            'ytd-reel-player-header-renderer a',
-            'ytd-reel-player-overlay-renderer a',
-            '.ytd-channel-name a',
-        ];
-        for (const selector of altSelectors) {
+        for (const selector of SELECTORS.CHANNEL_ALTERNATES) {
             const el = document.querySelector(selector);
             if (el && el.textContent) {
                 const name = el.textContent.trim();
@@ -310,7 +297,7 @@ class YouTubeSpeedController {
         }
 
         // Structured data author name
-        const jsonLd = document.querySelector('script[type="application/ld+json"]');
+        const jsonLd = document.querySelector(SELECTORS.JSON_LD);
         if (jsonLd) {
             try {
                 const data = JSON.parse(jsonLd.textContent);
@@ -326,11 +313,11 @@ class YouTubeSpeedController {
         }
 
         // Meta tag with channel id or author
-        const channelIdMeta = document.querySelector('meta[itemprop="channelId"]');
+        const channelIdMeta = document.querySelector(SELECTORS.CHANNEL_ID_META);
         if (channelIdMeta && channelIdMeta.content) {
             return channelIdMeta.content.trim();
         }
-        const authorMeta = document.querySelector('meta[itemprop="author"], meta[name="author"]');
+        const authorMeta = document.querySelector(SELECTORS.AUTHOR_META);
         if (authorMeta && authorMeta.content) {
             return authorMeta.content.trim();
         }
@@ -339,7 +326,10 @@ class YouTubeSpeedController {
         return this.extractChannelFromUrl();
     }
 
-    async resolveChannelName(maxAttempts = 10, delayMs = 500) {
+    async resolveChannelName(
+        maxAttempts = MAX_CHANNEL_RESOLVE_ATTEMPTS,
+        delayMs = CHANNEL_RESOLVE_DELAY
+    ) {
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             const channel = this.getChannelName();
             if (channel) {
@@ -355,12 +345,12 @@ class YouTubeSpeedController {
     extractChannelFromUrl() {
         const url = window.location.href;
 
-        const handleMatch = url.match(/\/(@[^/?#]+)/);
+        const handleMatch = url.match(PATTERNS.HANDLE);
         if (handleMatch && handleMatch[1]) {
             return handleMatch[1];
         }
 
-        const channelIdMatch = url.match(/\/channel\/([^/?#]+)/);
+        const channelIdMatch = url.match(PATTERNS.CHANNEL_ID);
         if (channelIdMatch && channelIdMatch[1]) {
             return channelIdMatch[1];
         }
@@ -374,13 +364,13 @@ class YouTubeSpeedController {
         const url = window.location.href;
 
         // Check for /watch?v=VIDEO_ID format
-        const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+        const watchMatch = url.match(PATTERNS.VIDEO_ID);
         if (watchMatch && watchMatch[1]) {
             return watchMatch[1];
         }
 
         // Check for /shorts/VIDEO_ID format
-        const shortsMatch = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+        const shortsMatch = url.match(PATTERNS.SHORTS_VIDEO_ID);
         if (shortsMatch && shortsMatch[1]) {
             return shortsMatch[1];
         }
@@ -450,21 +440,21 @@ class YouTubeSpeedController {
             const textarea = document.createElement('textarea');
             textarea.innerHTML = text;
             let decoded = textarea.value;
-            
+
             // Decode unicode escapes (e.g., \u0026 -> &)
             try {
-                decoded = decoded.replace(/\\u[\dA-Fa-f]{4}/g, (match) => {
+                decoded = decoded.replace(PATTERNS.UNICODE_ESCAPE, (match) => {
                     return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));
                 });
             } catch (e) {
                 console.log('YouTube Go Brrr content: Error decoding unicode escapes:', e);
             }
-            
+
             return decoded;
         };
 
         // 1) Structured data (JSON-LD)
-        const jsonLd = document.querySelector('script[type="application/ld+json"]');
+        const jsonLd = document.querySelector(SELECTORS.JSON_LD);
         if (jsonLd) {
             try {
                 const data = JSON.parse(jsonLd.textContent);
@@ -484,7 +474,9 @@ class YouTubeSpeedController {
                 if (data.genre) {
                     const genreValues = Array.isArray(data.genre) ? data.genre : [data.genre];
                     const cleaned = genreValues
-                        .map((g) => (typeof g === 'string' ? decodeText(g.trim()).toLowerCase() : ''))
+                        .map((g) =>
+                            typeof g === 'string' ? decodeText(g.trim()).toLowerCase() : ''
+                        )
                         .filter(Boolean);
                     if (cleaned.length) {
                         console.log('YouTube Go Brrr content: Found JSON-LD genre:', cleaned);
@@ -497,7 +489,7 @@ class YouTubeSpeedController {
         }
 
         // 2) Page metadata
-        const categoryMeta = document.querySelector('meta[itemprop="genre"]');
+        const categoryMeta = document.querySelector(SELECTORS.GENRE_META);
         if (categoryMeta && categoryMeta.content) {
             const category = decodeText(categoryMeta.content).toLowerCase();
             console.log('YouTube Go Brrr content: Found category meta:', category);
@@ -523,15 +515,13 @@ class YouTubeSpeedController {
         try {
             // Scan inline <script> tags for a JSON blob containing playerMicroformatRenderer.category
             const scripts = document.querySelectorAll('script');
-            const categoryRegex =
-                /"playerMicroformatRenderer"\s*:\s*\{[\s\S]*?"category"\s*:\s*"([^"]+)"/;
 
             for (const s of scripts) {
                 const text = s.textContent || '';
                 if (!text) continue;
                 // Quick filter to avoid heavy regex on unrelated scripts
                 if (text.includes('playerMicroformatRenderer') && text.includes('category')) {
-                    const m = categoryRegex.exec(text);
+                    const m = PATTERNS.CATEGORY.exec(text);
                     if (m && m[1]) {
                         return m[1];
                     }
@@ -554,51 +544,46 @@ class YouTubeSpeedController {
                     console.warn(
                         'YouTube Go Brrr: chrome.storage unavailable, using default speed'
                     );
-                    resolve(2.3);
+                    resolve(DEFAULT_SPEED);
                     return;
                 }
                 try {
-                    chrome.storage.sync.get(
-                        {
-                            defaultSpeed: 2.3,
-                            genreSpeeds: {
-                                Music: 1,
-                                Comedy: 1,
-                            },
-                            channelSpeeds: {},
-                            videoSpeeds: {},
-                        },
-                        (settings) => {
-                            try {
-                                // Safely check if extension context is still valid
-                                // Avoid any chrome API access that might throw
-                                if (settings === undefined || !settings) {
-                                    console.warn(
-                                        'YouTube Go Brrr: No settings returned, using default speed'
-                                    );
-                                    resolve(2.3);
-                                    return;
-                                }
-                                const speed = this.determineSpeed(videoInfo, settings);
-                                resolve(speed);
-                            } catch (callbackError) {
-                                console.error(
-                                    'YouTube Go Brrr: Error in storage callback:',
-                                    callbackError
+                    const defaultSettings = {};
+                    defaultSettings[STORAGE_KEYS.DEFAULT_SPEED] = DEFAULT_SPEED;
+                    defaultSettings[STORAGE_KEYS.GENRE_SPEEDS] = DEFAULT_GENRE_SPEEDS;
+                    defaultSettings[STORAGE_KEYS.CHANNEL_SPEEDS] = DEFAULT_CHANNEL_SPEEDS;
+                    defaultSettings[STORAGE_KEYS.VIDEO_SPEEDS] = DEFAULT_VIDEO_SPEEDS;
+
+                    chrome.storage.sync.get(defaultSettings, (settings) => {
+                        try {
+                            // Safely check if extension context is still valid
+                            // Avoid any chrome API access that might throw
+                            if (settings === undefined || !settings) {
+                                console.warn(
+                                    'YouTube Go Brrr: No settings returned, using default speed'
                                 );
-                                resolve(2.3);
+                                resolve(DEFAULT_SPEED);
+                                return;
                             }
+                            const speed = this.determineSpeed(videoInfo, settings);
+                            resolve(speed);
+                        } catch (callbackError) {
+                            console.error(
+                                'YouTube Go Brrr: Error in storage callback:',
+                                callbackError
+                            );
+                            resolve(DEFAULT_SPEED);
                         }
-                    );
+                    });
                 } catch (storageError) {
                     console.error(
                         'YouTube Go Brrr: Error calling chrome.storage.sync.get (likely extension context invalidated)'
                     );
-                    resolve(2.3);
+                    resolve(DEFAULT_SPEED);
                 }
             } catch (error) {
                 console.warn('YouTube Go Brrr: Unexpected error in getApplicableSpeed', error);
-                resolve(2.3); // Return default speed on error
+                resolve(DEFAULT_SPEED); // Return default speed on error
             }
         });
     }
@@ -657,7 +642,10 @@ class YouTubeSpeedController {
                     return;
                 }
 
-                chrome.storage.sync.get({ disabledVideoIds: {} }, (settings) => {
+                const defaultSettings = {};
+                defaultSettings[STORAGE_KEYS.DISABLED_VIDEO_IDS] = DEFAULT_DISABLED_VIDEO_IDS;
+
+                chrome.storage.sync.get(defaultSettings, (settings) => {
                     if (chrome.runtime.lastError) {
                         console.warn(
                             'YouTube Go Brrr: Error checking disabled videos',
@@ -666,7 +654,7 @@ class YouTubeSpeedController {
                         resolve(false);
                         return;
                     }
-                    const isDisabled = !!settings.disabledVideoIds[videoId];
+                    const isDisabled = !!settings[STORAGE_KEYS.DISABLED_VIDEO_IDS][videoId];
                     resolve(isDisabled);
                 });
             } catch (error) {

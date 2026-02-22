@@ -15,6 +15,9 @@ global.chrome = {
     },
 };
 
+// Load constants first
+require('../src/constants.js');
+
 // Import StorageManager after mocking
 const StorageManager = require('../src/storage.js');
 

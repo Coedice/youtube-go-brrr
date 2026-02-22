@@ -86,7 +86,7 @@ class PopupManager {
         const settings = await this.getStorageSettings();
 
         // Load default speed
-        this.defaultSpeedInput.value = this.snapSpeed(settings.defaultSpeed);
+        this.defaultSpeedInput.value = this.snapSpeed(settings[STORAGE_KEYS.DEFAULT_SPEED]);
 
         // Load video info and rules
         await this.loadCurrentVideoInfo();
@@ -94,19 +94,14 @@ class PopupManager {
 
     async getStorageSettings() {
         return new Promise((resolve) => {
-            chrome.storage.sync.get(
-                {
-                    defaultSpeed: 2.3,
-                    genreSpeeds: {
-                        Music: 1,
-                        Comedy: 1,
-                    },
-                    channelSpeeds: {},
-                    videoSpeeds: {},
-                    disabledVideoIds: {},
-                },
-                resolve
-            );
+            const defaultSettings = {};
+            defaultSettings[STORAGE_KEYS.DEFAULT_SPEED] = DEFAULT_SPEED;
+            defaultSettings[STORAGE_KEYS.GENRE_SPEEDS] = DEFAULT_GENRE_SPEEDS;
+            defaultSettings[STORAGE_KEYS.CHANNEL_SPEEDS] = DEFAULT_CHANNEL_SPEEDS;
+            defaultSettings[STORAGE_KEYS.VIDEO_SPEEDS] = DEFAULT_VIDEO_SPEEDS;
+            defaultSettings[STORAGE_KEYS.DISABLED_VIDEO_IDS] = DEFAULT_DISABLED_VIDEO_IDS;
+
+            chrome.storage.sync.get(defaultSettings, resolve);
         });
     }
 
@@ -125,13 +120,13 @@ class PopupManager {
     async handleSaveDefault() {
         const speed = this.snapSpeed(parseFloat(this.defaultSpeedInput.value));
 
-        if (isNaN(speed) || speed < 0.25 || speed > 16) {
+        if (isNaN(speed) || speed < MIN_SPEED || speed > MAX_SPEED) {
             return;
         }
 
         try {
             const settings = await this.getStorageSettings();
-            settings.defaultSpeed = speed;
+            settings[STORAGE_KEYS.DEFAULT_SPEED] = speed;
             this.defaultSpeedInput.value = speed;
             await this.saveStorageSettings(settings);
 
@@ -144,9 +139,9 @@ class PopupManager {
     async handleDeleteChannel(channel) {
         try {
             const settings = await this.getStorageSettings();
-            delete settings.channelSpeeds[channel];
+            delete settings[STORAGE_KEYS.CHANNEL_SPEEDS][channel];
             await this.saveStorageSettings(settings);
-            this.renderChannels(settings.channelSpeeds);
+            this.renderChannels(settings[STORAGE_KEYS.CHANNEL_SPEEDS]);
         } catch (error) {
             console.error('Error deleting channel rule:', error);
         }
@@ -205,7 +200,7 @@ class PopupManager {
             this.setSpeedInputVisibility(speedContainer, true);
 
             const speed = this.snapSpeed(parseFloat(speedInput.value));
-            if (isNaN(speed) || speed < 0.25 || speed > 16) {
+            if (isNaN(speed) || speed < MIN_SPEED || speed > MAX_SPEED) {
                 toggle.checked = false;
                 this.setSpeedInputVisibility(speedContainer, false);
                 return;
@@ -242,7 +237,7 @@ class PopupManager {
         if (!toggle.checked || !identifier) return;
 
         const speed = this.snapSpeed(parseFloat(speedInput.value));
-        if (isNaN(speed) || speed < 0.25 || speed > 16) {
+        if (isNaN(speed) || speed < MIN_SPEED || speed > MAX_SPEED) {
             return;
         }
 
@@ -263,7 +258,7 @@ class PopupManager {
         try {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tab && tab.id) {
-                chrome.tabs.sendMessage(tab.id, { action: 'reapplySpeed' });
+                chrome.tabs.sendMessage(tab.id, { action: MESSAGE_ACTIONS.REAPPLY_SPEED });
             }
         } catch (error) {
             console.error('Error notifying content script:', error);
@@ -307,7 +302,7 @@ class PopupManager {
             let contentScriptLoaded = false;
             try {
                 const pingResponse = await new Promise((resolve) => {
-                    chrome.tabs.sendMessage(tab.id, { action: 'ping' }, (res) => {
+                    chrome.tabs.sendMessage(tab.id, { action: MESSAGE_ACTIONS.PING }, (res) => {
                         if (chrome.runtime.lastError) {
                             console.log(
                                 'YouTube Go Brrr popup: Content script not loaded:',
@@ -336,7 +331,9 @@ class PopupManager {
                     });
                     console.log('YouTube Go Brrr popup: Content script injected successfully');
                     // Wait a bit for script to initialize
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                    await new Promise((resolve) =>
+                        setTimeout(resolve, CONTENT_SCRIPT_INJECTION_WAIT)
+                    );
                 } catch (error) {
                     console.log('YouTube Go Brrr popup: Failed to inject content script:', error);
                     // Show no info states since we can't get data
@@ -353,48 +350,60 @@ class PopupManager {
             const [genreResponse, channelResponse, videoResponse] = await Promise.all([
                 new Promise((resolve) => {
                     console.log('YouTube Go Brrr popup: Sending getGenreInfo to tab', tab.id);
-                    chrome.tabs.sendMessage(tab.id, { action: 'getGenreInfo' }, (res) => {
-                        if (chrome.runtime.lastError) {
-                            console.log(
-                                'YouTube Go Brrr popup: getGenreInfo error:',
-                                chrome.runtime.lastError.message
-                            );
-                            resolve(null);
-                        } else {
-                            console.log('YouTube Go Brrr popup: getGenreInfo response:', res);
-                            resolve(res);
+                    chrome.tabs.sendMessage(
+                        tab.id,
+                        { action: MESSAGE_ACTIONS.GET_GENRE_INFO },
+                        (res) => {
+                            if (chrome.runtime.lastError) {
+                                console.log(
+                                    'YouTube Go Brrr popup: getGenreInfo error:',
+                                    chrome.runtime.lastError.message
+                                );
+                                resolve(null);
+                            } else {
+                                console.log('YouTube Go Brrr popup: getGenreInfo response:', res);
+                                resolve(res);
+                            }
                         }
-                    });
+                    );
                 }),
                 new Promise((resolve) => {
                     console.log('YouTube Go Brrr popup: Sending getChannelInfo to tab', tab.id);
-                    chrome.tabs.sendMessage(tab.id, { action: 'getChannelInfo' }, (res) => {
-                        if (chrome.runtime.lastError) {
-                            console.log(
-                                'YouTube Go Brrr popup: getChannelInfo error:',
-                                chrome.runtime.lastError.message
-                            );
-                            resolve(null);
-                        } else {
-                            console.log('YouTube Go Brrr popup: getChannelInfo response:', res);
-                            resolve(res);
+                    chrome.tabs.sendMessage(
+                        tab.id,
+                        { action: MESSAGE_ACTIONS.GET_CHANNEL_INFO },
+                        (res) => {
+                            if (chrome.runtime.lastError) {
+                                console.log(
+                                    'YouTube Go Brrr popup: getChannelInfo error:',
+                                    chrome.runtime.lastError.message
+                                );
+                                resolve(null);
+                            } else {
+                                console.log('YouTube Go Brrr popup: getChannelInfo response:', res);
+                                resolve(res);
+                            }
                         }
-                    });
+                    );
                 }),
                 new Promise((resolve) => {
                     console.log('YouTube Go Brrr popup: Sending getVideoInfo to tab', tab.id);
-                    chrome.tabs.sendMessage(tab.id, { action: 'getVideoInfo' }, (res) => {
-                        if (chrome.runtime.lastError) {
-                            console.log(
-                                'YouTube Go Brrr popup: getVideoInfo error:',
-                                chrome.runtime.lastError.message
-                            );
-                            resolve(null);
-                        } else {
-                            console.log('YouTube Go Brrr popup: getVideoInfo response:', res);
-                            resolve(res);
+                    chrome.tabs.sendMessage(
+                        tab.id,
+                        { action: MESSAGE_ACTIONS.GET_VIDEO_INFO },
+                        (res) => {
+                            if (chrome.runtime.lastError) {
+                                console.log(
+                                    'YouTube Go Brrr popup: getVideoInfo error:',
+                                    chrome.runtime.lastError.message
+                                );
+                                resolve(null);
+                            } else {
+                                console.log('YouTube Go Brrr popup: getVideoInfo response:', res);
+                                resolve(res);
+                            }
                         }
-                    });
+                    );
                 }),
             ]);
 
@@ -435,7 +444,7 @@ class PopupManager {
                 for (const genre of this.currentGenres) {
                     const capitalizedGenre =
                         genre.charAt(0).toUpperCase() + genre.slice(1).toLowerCase();
-                    const genreRule = settings.genreSpeeds[capitalizedGenre];
+                    const genreRule = settings[STORAGE_KEYS.GENRE_SPEEDS][capitalizedGenre];
                     if (genreRule !== undefined) {
                         matchedGenres.push(capitalizedGenre);
                         if (lowestSpeed === null || genreRule < lowestSpeed) {
@@ -480,7 +489,7 @@ class PopupManager {
                 console.log('YouTube Go Brrr popup: Set channel:', this.currentChannel);
 
                 // Check if channel rule exists
-                const channelRule = settings.channelSpeeds[this.currentChannel];
+                const channelRule = settings[STORAGE_KEYS.CHANNEL_SPEEDS][this.currentChannel];
                 if (channelRule !== undefined) {
                     this.channelRuleToggle.checked = true;
                     this.currentChannelSpeed.value = this.snapSpeed(channelRule);
@@ -505,12 +514,14 @@ class PopupManager {
 
             // Handle video-specific rule
             if (this.currentVideoId) {
-                this.currentVideoName.textContent = `Video ID ${this.currentVideoId.slice(-6)}`;
+                this.currentVideoName.textContent = `Video ID ${this.currentVideoId.slice(-VIDEO_ID_DISPLAY_LENGTH)}`;
                 this.currentVideoContainer.style.display = 'block';
                 this.noVideoInfo.style.display = 'none';
 
                 // Check if video rule exists (highest priority)
-                const videoRule = settings.videoSpeeds && settings.videoSpeeds[this.currentVideoId];
+                const videoRule =
+                    settings[STORAGE_KEYS.VIDEO_SPEEDS] &&
+                    settings[STORAGE_KEYS.VIDEO_SPEEDS][this.currentVideoId];
                 if (videoRule !== undefined) {
                     this.videoRuleToggle.checked = true;
                     this.currentVideoSpeed.value = this.snapSpeed(videoRule);
@@ -553,21 +564,22 @@ class PopupManager {
             console.log('YouTube Go Brrr popup: Current settings:', settings);
 
             // Ensure disabledVideoIds exists
-            if (!settings.disabledVideoIds) {
-                settings.disabledVideoIds = {};
+            if (!settings[STORAGE_KEYS.DISABLED_VIDEO_IDS]) {
+                settings[STORAGE_KEYS.DISABLED_VIDEO_IDS] = {};
             }
 
-            const isCurrentlyDisabled = !!settings.disabledVideoIds[this.currentVideoId];
+            const isCurrentlyDisabled =
+                !!settings[STORAGE_KEYS.DISABLED_VIDEO_IDS][this.currentVideoId];
             console.log('YouTube Go Brrr popup: Video currently disabled:', isCurrentlyDisabled);
             console.log('YouTube Go Brrr popup: Toggle checked:', this.videoSpeedToggle.checked);
 
             // If toggle is ON, speed should be ENABLED (disabled = false)
             // If toggle is OFF, speed should be DISABLED (disabled = true)
             if (this.videoSpeedToggle.checked) {
-                delete settings.disabledVideoIds[this.currentVideoId];
+                delete settings[STORAGE_KEYS.DISABLED_VIDEO_IDS][this.currentVideoId];
                 console.log('YouTube Go Brrr popup: Enabling speed for video');
             } else {
-                settings.disabledVideoIds[this.currentVideoId] = true;
+                settings[STORAGE_KEYS.DISABLED_VIDEO_IDS][this.currentVideoId] = true;
                 console.log('YouTube Go Brrr popup: Disabling speed for video');
             }
 
@@ -578,7 +590,8 @@ class PopupManager {
             // Include the new disabled state so content script doesn't have to read from storage
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tab && tab.id) {
-                const newDisabledState = !!settings.disabledVideoIds[this.currentVideoId];
+                const newDisabledState =
+                    !!settings[STORAGE_KEYS.DISABLED_VIDEO_IDS][this.currentVideoId];
                 console.log(
                     'YouTube Go Brrr popup: Sending reapplySpeed message to tab:',
                     tab.id,
@@ -587,7 +600,7 @@ class PopupManager {
                 );
                 chrome.tabs.sendMessage(
                     tab.id,
-                    { action: 'reapplySpeed', isDisabled: newDisabledState },
+                    { action: MESSAGE_ACTIONS.REAPPLY_SPEED, isDisabled: newDisabledState },
                     () => {
                         if (chrome.runtime.lastError) {
                             console.log(
@@ -634,7 +647,7 @@ class PopupManager {
 
         setTimeout(() => {
             this.statusMessage.className = 'status-message';
-        }, 2000);
+        }, STATUS_MESSAGE_TIMEOUT);
     }
 
     escapeHtml(text) {
@@ -644,12 +657,9 @@ class PopupManager {
     }
 
     snapSpeed(value) {
-        const min = 0.25;
-        const max = 16;
-        const step = 0.1;
         if (!Number.isFinite(value)) return NaN;
-        const clamped = Math.min(Math.max(value, min), max);
-        const snapped = Math.round(clamped / step) * step;
+        const clamped = Math.min(Math.max(value, MIN_SPEED), MAX_SPEED);
+        const snapped = Math.round(clamped / SPEED_STEP) * SPEED_STEP;
         return Number(snapped.toFixed(2));
     }
 }
