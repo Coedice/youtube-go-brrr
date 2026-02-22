@@ -444,6 +444,25 @@ class YouTubeSpeedController {
         // Try to get video categories/genres from multiple sources (robust)
         const genres = [];
 
+        // Helper function to decode HTML entities and unicode escapes
+        const decodeText = (text) => {
+            // Decode HTML entities
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = text;
+            let decoded = textarea.value;
+            
+            // Decode unicode escapes (e.g., \u0026 -> &)
+            try {
+                decoded = decoded.replace(/\\u[\dA-Fa-f]{4}/g, (match) => {
+                    return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));
+                });
+            } catch (e) {
+                console.log('YouTube Go Brrr content: Error decoding unicode escapes:', e);
+            }
+            
+            return decoded;
+        };
+
         // 1) Structured data (JSON-LD)
         const jsonLd = document.querySelector('script[type="application/ld+json"]');
         if (jsonLd) {
@@ -454,7 +473,7 @@ class YouTubeSpeedController {
                 if (data.keywords && typeof data.keywords === 'string') {
                     const keywords = data.keywords
                         .split(',')
-                        .map((k) => k.trim().toLowerCase())
+                        .map((k) => decodeText(k.trim()).toLowerCase())
                         .filter(Boolean);
                     if (keywords.length) {
                         console.log('YouTube Go Brrr content: Found keywords:', keywords);
@@ -465,7 +484,7 @@ class YouTubeSpeedController {
                 if (data.genre) {
                     const genreValues = Array.isArray(data.genre) ? data.genre : [data.genre];
                     const cleaned = genreValues
-                        .map((g) => (typeof g === 'string' ? g.trim().toLowerCase() : ''))
+                        .map((g) => (typeof g === 'string' ? decodeText(g.trim()).toLowerCase() : ''))
                         .filter(Boolean);
                     if (cleaned.length) {
                         console.log('YouTube Go Brrr content: Found JSON-LD genre:', cleaned);
@@ -480,7 +499,7 @@ class YouTubeSpeedController {
         // 2) Page metadata
         const categoryMeta = document.querySelector('meta[itemprop="genre"]');
         if (categoryMeta && categoryMeta.content) {
-            const category = categoryMeta.content.toLowerCase();
+            const category = decodeText(categoryMeta.content).toLowerCase();
             console.log('YouTube Go Brrr content: Found category meta:', category);
             genres.push(category);
         }
@@ -489,7 +508,7 @@ class YouTubeSpeedController {
         //    microformat.playerMicroformatRenderer.category is typically "Music", "Entertainment", etc.
         const categoryFromPlayer = this.extractCategoryFromPlayerResponse();
         if (categoryFromPlayer) {
-            const lc = categoryFromPlayer.toLowerCase();
+            const lc = decodeText(categoryFromPlayer).toLowerCase();
             console.log('YouTube Go Brrr content: Found category from player response:', lc);
             genres.push(lc);
         }
