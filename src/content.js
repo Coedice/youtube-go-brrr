@@ -236,7 +236,7 @@ class YouTubeSpeedController {
 
         // Primary: channel link in the watch page header
         const channelElement = document.querySelector(
-            'ytd-channel-name a, a[href*="/c/"], a[href*="/@"]'
+            '.ytd-channel-name > ytd-channel-name > a'
         );
         if (channelElement && channelElement.textContent) {
             const channel = channelElement.textContent.trim();
